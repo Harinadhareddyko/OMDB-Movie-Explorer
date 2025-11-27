@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>OMDB Movie Explorer - Royal Purple</title>
+
+    <style>
+        :root {
+            --bg-main: #0f061f;
+            --bg-card: #1d1233;
+            --accent: #e843c4;
+            --text-main: #ffffff;
+            --text-muted: #a5b4fc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, sans-serif;
+            background: radial-gradient(circle at top, #3b0764, #1c0c3a 40%, #050114 100%);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /***********************************
+         NAVBAR
+         ***********************************/
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            width: 100%;
+            padding: 14px 40px;
+            background: rgba(10, 3, 24, 0.72);
+            backdrop-filter: blur(14px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            color: var(--accent);
+            font-size: 26px;
+            filter: drop-shadow(0 0 5px var(--accent));
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            background: rgba(232, 67, 196, 0.15);
+            color: var(--text-main);
+        }
+
+        /***********************************
+         MAIN
+         ***********************************/
+        .main {
+            padding: 20px 40px;
+            height: calc(100vh - 70px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section {
+            display: none;
+            height: 100%;
+        }
+        .section.active {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .section-title {
+            font-size: 26px;
+            margin-bottom: 6px;
+        }
+        .section-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        /***********************************
+         FULL PAGE 6 CARD GRID
+         ***********************************/
+        .grid-wrapper {
+            flex: 1;
+            display: flex;
+        }
+
+        .grid-3x2 {
+            width: 100%;
+            height: 100%;
+
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+
+            gap: 24px;
+
+            justify-items: stretch;
+            align-items: stretch;
+
+            /* Ensures ALL SCREENS fill perfectly */
+            min-height: 0;
+        }
+
+        /***********************************
+         LANDSCAPE MOVIE CARD
+         ***********************************/
+        .movie-card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+
+            border-radius: 18px;
+            overflow: hidden;
+
+            background: radial-gradient(circle at top, #742dd2, #1d1233 70%);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+
+            cursor: pointer;
+            transform-style: preserve-3d;
+
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-8px) scale(1.04);
+            box-shadow: 0 20px 45px rgba(232, 67, 196, 0.5);
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-overlay {
+            position: absolute;
+            bottom: 0;
+            background: linear-gradient(to top, rgba(10, 0, 20, 0.9), transparent);
+            padding: 14px;
+            width: 100%;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .card-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /***********************************
+         FAVORITE TAG
+         ***********************************/
+        .fav-tag {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--accent);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: white;
+        }
+
+        /***********************************
+         SEARCH BAR
+         ***********************************/
+        .search-bar-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .search-input {
+            padding: 10px 14px;
+            width: 260px;
+            border-radius: 20px;
+            border: 1px solid var(--accent);
+            background: rgba(15, 23, 42, 0.7);
+            color: white;
+        }
+        .search-btn {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        /***********************************
+         PAGINATION
+         ***********************************/
+        .pagination-row {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .page-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: none;
+            background: #5b21b6;
+            color: white;
+            cursor: pointer;
+        }
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        /***********************************
+         LOADER
+         ***********************************/
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 3, 20, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 120;
+        }
+        .loader {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 4px solid #7c3aed;
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /***********************************
+         MODAL
+         ***********************************/
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 0, 15, 0.92);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .modal-content {
+            width: 75%;
+            max-width: 820px;
+            background: #1d1233;
+            padding: 20px;
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 18px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            font-size: 30px;
+            cursor: pointer;
+        }
+
+        .modal-poster img {
+            width: 100%;
+            border-radius: 14px;
+        }
+
+        .modal-body h2 { margin-bottom: 8px; }
+        .modal-body p { margin-bottom: 6px; }
+
+        .fav-btn {
+            margin-top: 10px;
+            padding: 10px 18px;
+            background: var(--accent);
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            color: white;
+        }
+        .fav-btn.remove { background: #e11d48; }
+
+        /***********************************
+         RESPONSIVE
+         ***********************************/
+        @media (max-width: 900px) {
+            .grid-3x2 {
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+                height: auto;
+            }
+            .modal-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid-3x2 {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(6, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Loader -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🎬</span> Movie Explorer
+        </div>
+        <div class="nav-links">
+            <button class="nav-btn active" id="navHome" onclick="switchView('home')">Home</button>
+            <button class="nav-btn" id="navSearch" onclick="switchView('search')">Search</button>
+            <button class="nav-btn" id="navFav" onclick="switchView('favorites')">Favorites</button>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- HOME -->
+        <section id="homeSection" class="section active">
+            <div class="section-title">Trending Now</div>
+            <div class="section-subtitle">Top picks for you.</div>
+            <div class="grid-wrapper">
+                <div id="trendingGrid" class="grid-3x2"></div>
+            </div>
+        </section>
+
+        <!-- SEARCH -->
+        <section id="searchSection" class="section">
+            <div class="section-title">Search</div>
+
+            <div class="search-bar-row">
+                <input id="searchInput" class="search-input" placeholder="Search movies..." />
+                <button class="search-btn" onclick="startSearch()">Search</button>
+            </div>
+
+            <div class="grid-wrapper">
+                <div id="searchResults" class="grid-3x2"></div>
+            </div>
+
+            <div class="pagination-row">
+                <span id="pageInfo">Page 0 of 0</span>
+                <div>
+                    <button id="prevBtn" class="page-btn" disabled onclick="prevPage()">Prev</button>
+                    <button id="nextBtn" class="page-btn" disabled onclick="nextPage()">Next</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAVORITES -->
+        <section id="favSection" class="section">
+            <div class="section-title">Favorites</div>
+            <div class="grid-wrapper">
+                <div id="favGrid" class="grid-3x2"></div>
+            </div>
+            <p id="favEmpty" style="text-align:center; color:var(--text-muted); display:none;">
+                No favorites yet.
+            </p>
+        </section>
+
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">×</span>
+            <div class="modal-poster" id="modalPoster"></div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+<script>
+/***********************************
+ GLOBAL STATE
+ ***********************************/
+const trendingIds = [
+    "tt4154796", "tt0848228", "tt1375666",
+    "tt3896198", "tt0816692", "tt0468569"
+];
+
+let trendingMovies = [];
+let currentMovie = null;
+
+let lastQuery = "";
+let currentPage = 1;
+let totalResults = 0;
+let allPageResults = [];
+
+/***********************************
+ VIEW SWITCHING
+ ***********************************/
+function switchView(view) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+
+    if (view === "home") {
+        document.getElementById("homeSection").classList.add("active");
+        document.getElementById("navHome").classList.add("active");
+        renderTrending();
+    }
+
+    if (view === "search") {
+        document.getElementById("searchSection").classList.add("active");
+        document.getElementById("navSearch").classList.add("active");
+    }
+
+    if (view === "favorites") {
+        document.getElementById("favSection").classList.add("active");
+        document.getElementById("navFav").classList.add("active");
+        renderFavorites();
+    }
+}
+
+/***********************************
+ LOADER
+ ***********************************/
+function showLoader(show) {
+    document.getElementById("loader").style.display = show ? "flex" : "none";
+}
+
+/***********************************
+ HOME - TRENDING MOVIES
+ ***********************************/
+async function loadTrending() {
+    showLoader(true);
+    trendingMovies = [];
+
+    for (let id of trendingIds) {
+        let res = await fetch(`api/movie?id=${id}`);
+        let data = await res.json();
+        if (data.Response !== "False") trendingMovies.push(data);
+    }
+
+    renderTrending();
+    showLoader(false);
+}
+
+function renderTrending() {
+    let out = trendingMovies.slice(0, 6);
+    let container = document.getElementById("trendingGrid");
+    container.innerHTML = "";
+    out.forEach(m => container.appendChild(createMovieCard(m)));
+}
+
+/***********************************
+ FAVORITES
+ ***********************************/
+function getFavorites() {
+    return JSON.parse(localStorage.getItem("favorites") || "[]");
+}
+function saveFavorites(list) {
+    localStorage.setItem("favorites", JSON.stringify(list));
+}
+
+function toggleFavoriteCurrent() {
+    let favs = getFavorites();
+    let idx = favs.findIndex(x => x.imdbID === currentMovie.imdbID);
+
+    if (idx === -1) favs.push(currentMovie);
+    else favs.splice(idx, 1);
+
+    saveFavorites(favs);
+    renderFavorites();
+    renderTrending();
+    applyFiltersAndRender();
+}
+
+function renderFavorites() {
+    let favs = getFavorites();
+    let grid = document.getElementById("favGrid");
+    let empty = document.getElementById("favEmpty");
+
+    grid.innerHTML = "";
+
+    if (favs.length === 0) {
+        empty.style.display = "block";
+        return;
+    }
+
+    empty.style.display = "none";
+    favs.slice(0, 6).forEach(m => grid.appendChild(createMovieCard(m)));
+}
+
+/***********************************
+ CREATE MOVIE CARD
+ ***********************************/
+function createMovieCard(movie) {
+    let card = document.createElement("div");
+    card.className = "movie-card";
+    card.onclick = () => openMovie(movie.imdbID);
+
+    let poster = movie.Poster && movie.Poster !== "N/A"
+        ? movie.Poster
+        : "https://via.placeholder.com/640x360?text=No+Image";
+
+    let favTag = getFavorites().some(f => f.imdbID === movie.imdbID)
+        ? `<div class="fav-tag">Fav</div>` : "";
+
+    card.innerHTML = `
+        ${favTag}
+        <img src="${poster}" />
+        <div class="card-overlay">
+            <div class="card-title">${movie.Title}</div>
+            <div class="card-meta">
+                <span>${movie.Year}</span>
+                <span>${movie.Type.toUpperCase()}</span>
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+/***********************************
+ SEARCH
+ ***********************************/
+async function startSearch(page = 1) {
+    let q = document.getElementById("searchInput").value.trim();
+    if (!q && !lastQuery) {
+        alert("Enter a title!");
+        return;
+    }
+    if (q) lastQuery = q;
+    currentPage = page;
+
+    showLoader(true);
+    let res = await fetch(`api/search?query=${encodeURIComponent(lastQuery)}&page=${currentPage}`);
+    let data = await res.json();
+    showLoader(false);
+
+    if (!data.Search) {
+        document.getElementById("searchResults").innerHTML = "<p>No results.</p>";
+        return;
+    }
+
+    allPageResults = data.Search;
+    totalResults = data.totalResults;
+    applyFiltersAndRender();
+    updatePagination();
+}
+
+function applyFiltersAndRender() {
+    let items = allPageResults.slice(0, 6);
+    let container = document.getElementById("searchResults");
+    container.innerHTML = "";
+    items.forEach(m => container.appendChild(createMovieCard(m)));
+}
+
+function updatePagination() {
+    let maxPage = Math.ceil(totalResults / 10);
+    document.getElementById("pageInfo").innerText = `Page ${currentPage} of ${maxPage}`;
+
+    document.getElementById("prevBtn").disabled = currentPage <= 1;
+    document.getElementById("nextBtn").disabled = currentPage >= maxPage;
+}
+
+function nextPage() { startSearch(currentPage + 1); }
+function prevPage() { startSearch(currentPage - 1); }
+
+/***********************************
+ MODAL
+ ***********************************/
+async function openMovie(id) {
+    showLoader(true);
+    let res = await fetch(`api/movie?id=${id}`);
+    let data = await res.json();
+    showLoader(false);
+
+    currentMovie = data;
+    let modal = document.getElementById("modal");
+
+    document.getElementById("modalPoster").innerHTML = `
+        <img src="${data.Poster}" />
+    `;
+
+    document.getElementById("modalBody").innerHTML = `
+        <h2>${data.Title} (${data.Year})</h2>
+        <p><strong>Rating:</strong> ${data.imdbRating}</p>
+        <p><strong>Genre:</strong> ${data.Genre}</p>
+        <p><strong>Director:</strong> ${data.Director}</p>
+        <p><strong>Actors:</strong> ${data.Actors}</p>
+        <p><strong>Plot:</strong> ${data.Plot}</p>
+
+        <button class="fav-btn ${isFavorite(data.imdbID) ? "remove" : ""}"
+            onclick="toggleFavoriteCurrent()">
+            ${isFavorite(data.imdbID) ? "Remove from Favorites" : "Add to Favorites ❤️"}
+        </button>
+    `;
+
+    modal.style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+function isFavorite(id) {
+    return getFavorites().some(f => f.imdbID === id);
+}
+
+/***********************************
+ INIT
+ ***********************************/
+document.addEventListener("DOMContentLoaded", loadTrending);
+</script>
+
+</body>
+</html>
